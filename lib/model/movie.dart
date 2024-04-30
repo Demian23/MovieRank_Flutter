@@ -11,6 +11,7 @@ class Movie {
   final List<String> director;
   final String description;
   final Duration duration;
+  FavouritesProperties? favouritesProperties;
 
   Movie(
       this.id,
@@ -134,13 +135,20 @@ extension GenreAsString on Genres {
 
 class FavouritesProperties {
   final FavouritesPurpose purpose;
+  FavouritesProperties.fromMap({required Map<String, dynamic> fields})
+      : this(
+            purpose: FavouritesPurpose.values.firstWhere(
+                (e) => e.toViewableString() == "${fields['purpose']}"));
 
   FavouritesProperties({required this.purpose});
+  Map<String, dynamic> toMap() {
+    return {'purpose': purpose.toViewableString()};
+  }
 }
 
 enum FavouritesPurpose {
   watchLater,
-  vavourite,
+  favourite,
   none,
 }
 

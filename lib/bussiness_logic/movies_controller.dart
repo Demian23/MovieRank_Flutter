@@ -10,6 +10,7 @@ final moviesControllerProvider =
 
 class MoviesController extends StateNotifier<List<Movie>> {
   final Ref _ref;
+  bool _favouritesLoaded = false;
   MoviesController(this._ref) : super([]) {
     final authState = _ref.watch(authStateChangesProvider);
     authState.when(
@@ -21,5 +22,15 @@ class MoviesController extends StateNotifier<List<Movie>> {
       loading: () {},
       error: (error, stackTrace) {},
     );
+  }
+
+  void loadFavouritesForCurrentUserOnce() async {
+    if (!_favouritesLoaded) {
+      final uid = _ref.read(authControllerProvider).firebaseUserSession!.uid;
+      await _ref
+          .read(moviesRepositoryProvider)
+          .addFavouriteMoviesInMovieListForUser(uid: uid, movies: state);
+      _favouritesLoaded = true;
+    }
   }
 }

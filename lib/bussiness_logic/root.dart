@@ -13,7 +13,7 @@ class _RootState extends State<Root> {
   int _selectedTabPage = 0;
   static const List<Widget> _pages = <Widget>[
     MovieListScreen(),
-    Icon(Icons.alarm),
+    FavouritesListScreen(),
     ProfileScreen(),
   ];
 
