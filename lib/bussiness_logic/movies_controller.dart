@@ -11,6 +11,8 @@ final moviesControllerProvider =
 
 final marksControllerProvider =
     Provider<MarksController>((ref) => MarksController(ref));
+final imgsControllerProvider =
+    Provider<ImagesUrlsController>((ref) => ImagesUrlsController(ref));
 
 class MoviesController extends StateNotifier<List<Movie>> {
   final Ref _ref;
@@ -67,5 +69,20 @@ class MarksController {
         .updateOrCreateNewMarkForMovieByUser(
             movieId: movieId, userId: uid, newMarkValue: mark);
     marks[movieId] = mark;
+  }
+}
+
+class ImagesUrlsController {
+  final Ref _ref;
+  final Map<String, List<String>> urls = {};
+  ImagesUrlsController(this._ref);
+  Future<List<String>> getImgsUrls(String movieId) async {
+    if (!urls.containsKey(movieId)) {
+      final urlsForMovie = await _ref
+          .read(moviesRepositoryProvider)
+          .fetchImgUrlsForMovie(movieId);
+      urls[movieId] = urlsForMovie;
+    }
+    return urls[movieId]!;
   }
 }

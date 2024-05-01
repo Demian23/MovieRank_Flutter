@@ -163,4 +163,15 @@ class MovieRepository {
       return '';
     }
   }
+
+  Future<List<String>> fetchImgUrlsForMovie(String movieId) async {
+    List<String> result = [];
+    final all =
+        await _ref.read(storageProvider).ref("movies/$movieId").listAll();
+    for (var item in all.items) {
+      final url = await item.getDownloadURL();
+      result.add(url);
+    }
+    return result;
+  }
 }

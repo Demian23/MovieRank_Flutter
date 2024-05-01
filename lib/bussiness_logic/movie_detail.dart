@@ -1,7 +1,10 @@
+import 'package:cached_network_image/cached_network_image.dart';
+import 'package:carousel_slider/carousel_slider.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
+import 'package:movie_rank/auth/auth_controller.dart';
 import 'package:movie_rank/bussiness_logic/movies_controller.dart';
+import 'package:movie_rank/bussiness_logic/movies_repository.dart';
 import 'package:movie_rank/model/movie.dart';
 
 class MovieDetailScreen extends StatefulHookConsumerWidget {
@@ -18,21 +21,49 @@ class MovieDetailScreen extends StatefulHookConsumerWidget {
 class _DetaileState extends ConsumerState<MovieDetailScreen> {
   final int movieIndex;
   final rankController = TextEditingController();
+  List<String> images = [];
+  FavouritesPurpose currentPurpose = FavouritesPurpose.none;
   _DetaileState(this.movieIndex);
 
   @override
   Widget build(BuildContext context) {
     final movie = ref.read(moviesControllerProvider).elementAt(movieIndex);
+    setState(() {
+      currentPurpose = ref
+              .read(moviesControllerProvider)
+              .elementAt(movieIndex)
+              .favouritesProperties
+              ?.purpose ??
+          FavouritesPurpose.none;
+    });
+
     ref.read(marksControllerProvider).getMarkForMovie(movie.id).then(
           (value) => rankController.text = value,
         );
+    ref.read(imgsControllerProvider).getImgsUrls(movie.id).then((value) {
+      setState(
+        () {
+          images = value;
+        },
+      );
+    });
     return Scaffold(
         appBar: AppBar(
           title: Text(movie.name),
         ),
         body: Column(
           children: [
-            const Icon(Icons.image),
+            CarouselSlider(
+                items: images
+                    .map((item) => Center(
+                            child: CachedNetworkImage(
+                          imageUrl: item,
+                          fit: BoxFit.cover,
+                          placeholder: (context, url) =>
+                              const CircularProgressIndicator(),
+                        )))
+                    .toList(),
+                options: CarouselOptions()),
             Text(movie.name),
             const Text("Other fields"),
             TextField(
@@ -45,26 +76,73 @@ class _DetaileState extends ConsumerState<MovieDetailScreen> {
                 ref.read(marksControllerProvider).setMarkForMovie(movie.id,
                     int.parse(rankController.text)); // TODO add validation
               },
-              
             ),
-            IconButton(icon: movie.favouritesProperties.purpose == FavouritesPurpose.Favourite ? Icons.star)
-            IconButton(onClick = { coroutineScope.launch { favouritesState.value = onFavouritesChange(favouritesState.value, FavouritesProperties(FavouritesPurpose.Favourite));isError.value = checkErrorState()} }) {
-                Icon(
-                    imageVector = if (favouritesState.value == FavouritesPurpose.Favourite) Icons.Filled.Star else Icons.Outlined.Star,
-                    contentDescription = "Favourite",
-                    tint = if (favouritesState.value == FavouritesPurpose.Favourite) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.secondary,
-                )
-            }
-            IconButton(onClick = { coroutineScope.launch { favouritesState.value = onFavouritesChange(favouritesState.value, FavouritesProperties(FavouritesPurpose.WatchLater)); isError.value = checkErrorState()} }) {
-                Icon(
-                    imageVector = if (favouritesState.value == FavouritesPurpose.WatchLater) Icons.Filled.DateRange else Icons.Outlined.DateRange,
-                    contentDescription = "WatchLater",
-                    tint = if (favouritesState.value == FavouritesPurpose.WatchLater) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.secondary,
-                )
-            }
+            IconButton(
+              icon: Icon(currentPurpose == FavouritesPurpose.favourite
+                  ? Icons.star
+                  : Icons.star_border),
+              onPressed: () {
+                // TODO move to some controller / view model
+                onFavouritesChange(
+                        movie.id, currentPurpose, FavouritesPurpose.favourite)
+                    .then((value) => setState(() {
+                          currentPurpose = value;
+                        }));
+              },
+            ),
+            IconButton(
+              icon: Icon(currentPurpose == FavouritesPurpose.watchLater
+                  ? Icons.watch_later
+                  : Icons.watch_later_outlined),
+              onPressed: () {
+                onFavouritesChange(
+                        movie.id, currentPurpose, FavouritesPurpose.watchLater)
+                    .then((value) => setState(() {
+                          currentPurpose = value;
+                        }));
+              },
+            ),
             Text(movie.favouritesProperties?.purpose.toViewableString() ??
                 "none")
           ],
         ));
+  }
+
+  Future<FavouritesPurpose> onFavouritesChange(String movieId,
+      FavouritesPurpose prevState, FavouritesPurpose currentPress) async {
+    final movieRepository = ref.read(moviesRepositoryProvider);
+    final uid = ref.read(authControllerProvider).firebaseUserSession!.uid;
+    if (prevState == currentPress) {
+      await movieRepository.deleteMovieFromUserFavourites(
+          movieId: movieId, userId: uid);
+      // TODO update in movie list
+      ref
+          .read(moviesControllerProvider)
+          .firstWhere((element) => element.id == movieId)
+          .favouritesProperties = null;
+      return FavouritesPurpose.none;
+    } else {
+      switch (prevState) {
+        case FavouritesPurpose.none:
+          await movieRepository.addMovieToUserFavourites(
+              movieId: movieId,
+              userId: uid,
+              prop: FavouritesProperties(purpose: currentPress));
+          break;
+        case FavouritesPurpose.watchLater:
+        case FavouritesPurpose.favourite:
+          // TODO change update and maybe add interface from properties to purpose only
+          await movieRepository.updateMovieInUserFavourites(
+              movieId: movieId,
+              userId: uid,
+              properties: FavouritesProperties(purpose: currentPress));
+          break;
+      }
+      ref
+          .read(moviesControllerProvider)
+          .firstWhere((element) => element.id == movieId)
+          .favouritesProperties = FavouritesProperties(purpose: currentPress);
+      return currentPress;
+    }
   }
 }
