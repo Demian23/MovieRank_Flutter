@@ -3,7 +3,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:movie_rank/model/user.dart';
 import 'package:movie_rank/providers.dart';
 
-final userDaoProvider = Provider<UserRepository>((ref) => UserRepository(ref));
+final userRepositoryProvider =
+    Provider<UserRepository>((ref) => UserRepository(ref));
 
 class UserRepository {
   final Ref _ref;
@@ -26,7 +27,7 @@ class UserRepository {
             toFirestore: (user, _) => user.toMap());
   }
 
-  DocumentReference _user(String uid) {
+  DocumentReference _userRef(String uid) {
     return _userCollectionRef().doc(uid);
   }
 
@@ -46,7 +47,7 @@ class UserRepository {
   }
 
   Future<User> fetchUser({required String uid}) async {
-    final snapshot = await _user(uid).get();
+    final snapshot = await _userRef(uid).get();
     if (snapshot.exists) {
       return snapshot.data() as User;
     } else {
@@ -55,24 +56,30 @@ class UserRepository {
   }
 
   Future<void> createNewUser(User user) async {
-    await _user(user.id).set(user);
+    await _userRef(user.id).set(user);
   }
 
   Future<void> setNewUserScore(
       {required String forUid, required int score}) async {
-    await _user(forUid).update({_userScoreKey: score});
+    await _userRef(forUid).update({_userScoreKey: score});
   }
 
   Future<void> updateUserScore(
       {required String forUid, required int on}) async {
-    await _user(forUid).update({_userScoreKey: FieldValue.increment(on)});
+    await _userRef(forUid).update({_userScoreKey: FieldValue.increment(on)});
   }
 
   Future<void> deleteData({required String forUid}) async {
     final batch = _ref.read(firestoreProvider).batch();
-    batch.delete(_user(forUid));
+    batch.delete(_userRef(forUid));
     batch.delete(_favouritesForUser(forUid));
     // TODO delete marks too or make it as clound func
     await batch.commit();
+  }
+
+  void incrementUserScoreInTransactionOn(
+      String uid, Transaction transaction, int on) {
+    final user = _userRef(uid);
+    transaction.update(user, {_userScoreKey: FieldValue.increment(on)});
   }
 }

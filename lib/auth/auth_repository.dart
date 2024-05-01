@@ -65,7 +65,7 @@ class AuthRepository {
     final uid =
         await createNewUserAndReturnId(email: email, password: password);
     await _ref
-        .read(userDaoProvider)
+        .read(userRepositoryProvider)
         .createNewUser(mr.User(uid, firstName, lastName, email, role, country));
     await signIn(email: email, password: password);
   }

@@ -1,5 +1,6 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:movie_rank/dao/user_repository.dart';
 import 'package:movie_rank/model/movie.dart';
 import 'package:movie_rank/providers.dart';
 
@@ -12,11 +13,11 @@ class MovieRepository {
   MovieRepository(this._ref);
 
   static const _movieCollection = "movies";
-  static const _movieMarkComponents = ["marksWholeScore", "marksAmount"];
   static const _marksCollection = "marks";
   static const _marksForUserCollection = "user";
   static const _markForUserKey = "userMark";
-  static const _userScoreKey = "marksWholeScore";
+  static const _wholeMovieScoreKey = "marksWholeScore";
+  static const _movieScoresCount = "marksAmount";
   static const _favouritesCollection = "favourites";
   static const _favouritesForUserCollection = "userMovies";
   static const _favouritesForUserMoviePurposeKey = "purpose";
@@ -31,10 +32,6 @@ class MovieRepository {
             toFirestore: (movie, _) => movie.toMap());
   }
 
-  DocumentReference _movieRef(String movieId) {
-    return _movieCollectionRef().doc(movieId);
-  }
-
   CollectionReference _favouritesCollectionRefForUser(String uid) {
     return _ref
         .read(firestoreProvider)
@@ -45,6 +42,19 @@ class MovieRepository {
             fromFirestore: (snapshot, _) =>
                 FavouritesProperties.fromMap(fields: snapshot.data()!),
             toFirestore: (properties, _) => properties.toMap());
+  }
+
+  DocumentReference _movieRef(String movieId) {
+    return _movieCollectionRef().doc(movieId);
+  }
+
+  DocumentReference _markRef(String movieId, String userId) {
+    return _ref
+        .read(firestoreProvider)
+        .collection(_marksCollection)
+        .doc(movieId)
+        .collection(_marksForUserCollection)
+        .doc(userId);
   }
 
   Future<List<Movie>> getAllMovies() async {
@@ -115,11 +125,42 @@ class MovieRepository {
     }
   }
 
+  // TODO handle errors ? exceptions?
   Future<void> updateOrCreateNewMarkForMovieByUser(
       {required String movieId,
       required String userId,
       required int newMarkValue}) async {
     final movieRef = _movieRef(movieId);
-    final makrRef = null;
+    final markRef = _markRef(movieId, userId);
+    await _ref.read(firestoreProvider).runTransaction((transaction) async {
+      final markSnapshot = await transaction.get(markRef);
+      if (!markSnapshot.exists) {
+        _ref
+            .read(userRepositoryProvider)
+            .incrementUserScoreInTransactionOn(userId, transaction, 1);
+        transaction.set(markRef, {_markForUserKey: newMarkValue.toString()});
+        transaction.update(movieRef, {
+          _wholeMovieScoreKey: FieldValue.increment(newMarkValue),
+          _movieScoresCount: FieldValue.increment(1)
+        });
+      } else {
+        final oldMark = int.parse(markSnapshot.get(_markForUserKey));
+        transaction.update(markRef, {_markForUserKey: newMarkValue.toString()});
+        transaction.update(movieRef, {
+          _wholeMovieScoreKey: FieldValue.increment(newMarkValue - oldMark)
+        });
+      }
+    });
+  }
+
+  // TODO mark in firestore stored as String?
+  Future<String> fetchMarkForMovieByUser(
+      {required String movieId, required String userId}) async {
+    final markSnapshot = await _markRef(movieId, userId).get();
+    if (markSnapshot.exists) {
+      return markSnapshot.get(_markForUserKey) as String;
+    } else {
+      return '';
+    }
   }
 }

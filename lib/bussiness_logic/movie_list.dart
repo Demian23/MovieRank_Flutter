@@ -93,7 +93,7 @@ class MovieListRow extends StatelessWidget {
       trailing: Text(avgMark.toString()),
       onTap: () {
         Navigator.push(context,
-            MaterialPageRoute(builder: (context) => MovieDetail(index)));
+            MaterialPageRoute(builder: (context) => MovieDetailScreen(index)));
       },
     );
   }
@@ -134,7 +134,7 @@ class FavouriteListRow extends StatelessWidget {
       trailing: Text(avgMark.toString()),
       onTap: () {
         Navigator.push(context,
-            MaterialPageRoute(builder: (context) => MovieDetail(index)));
+            MaterialPageRoute(builder: (context) => MovieDetailScreen(index)));
       },
     );
   }

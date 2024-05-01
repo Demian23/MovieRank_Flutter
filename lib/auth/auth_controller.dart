@@ -28,7 +28,7 @@ class AuthController extends StateNotifier<UserSession> {
       data: (user) async {
         if (user != null) {
           final userData =
-              await _ref.read(userDaoProvider).fetchUser(uid: user.uid);
+              await _ref.read(userRepositoryProvider).fetchUser(uid: user.uid);
           state = UserSession(user, userData);
         }
       },
