@@ -27,85 +27,184 @@ class _DetaileState extends ConsumerState<MovieDetailScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final movie = ref.read(moviesControllerProvider).elementAt(movieIndex);
-    setState(() {
-      currentPurpose = ref
-              .read(moviesControllerProvider)
-              .elementAt(movieIndex)
-              .favouritesProperties
-              ?.purpose ??
-          FavouritesPurpose.none;
-    });
+    final movie = ref.watch(moviesControllerProvider).elementAt(movieIndex);
+    setState(
+      () => currentPurpose =
+          movie.favouritesProperties?.purpose ?? FavouritesPurpose.none,
+    );
+    final avgMark =
+        movie.marksAmount != 0 ? movie.marksWholeScore / movie.marksAmount : 0;
 
     ref.read(marksControllerProvider).getMarkForMovie(movie.id).then(
           (value) => rankController.text = value,
         );
-    ref.read(imgsControllerProvider).getImgsUrls(movie.id).then((value) {
-      setState(
-        () {
-          images = value;
-        },
-      );
-    });
+    if (images.isEmpty) {
+      ref.read(imgsControllerProvider).getImgsUrls(movie.id).then((value) {
+        setState(
+          () {
+            images = value;
+          },
+        );
+      });
+    }
     return Scaffold(
         appBar: AppBar(
           title: Text(movie.name),
         ),
-        body: Column(
+        body: SingleChildScrollView(
+            child: Column(
           children: [
-            CarouselSlider(
-                items: images
-                    .map((item) => Center(
-                            child: CachedNetworkImage(
-                          imageUrl: item,
-                          fit: BoxFit.cover,
-                          placeholder: (context, url) =>
-                              const CircularProgressIndicator(),
-                        )))
-                    .toList(),
-                options: CarouselOptions()),
-            Text(movie.name),
-            const Text("Other fields"),
-            TextField(
-              controller: rankController,
-              decoration: const InputDecoration(labelText: "Rank"),
+            Builder(builder: (context) {
+              if (images.isEmpty) {
+                return const Icon(
+                  Icons.image,
+                );
+              } else {
+                return CarouselSlider(
+                    items: images
+                        .map((item) => Center(
+                                child: CachedNetworkImage(
+                              imageUrl: item,
+                              fit: BoxFit.cover,
+                              placeholder: (context, url) =>
+                                  const CircularProgressIndicator(),
+                            )))
+                        .toList(),
+                    options: CarouselOptions());
+              }
+            }),
+            FractionallySizedBox(
+              widthFactor: 0.8,
+              alignment: Alignment.center,
+              child: Row(
+                children: [
+                  Expanded(
+                    flex: 10,
+                    child: Text(movie.name,
+                        style: Theme.of(context).textTheme.headlineLarge),
+                  ),
+                  Expanded(
+                      flex: 3,
+                      child: Text(avgMark.toString(),
+                          style: Theme.of(context).textTheme.headlineMedium))
+                ],
+              ),
             ),
-            TextButton(
-              child: const Text("Rank"),
-              onPressed: () {
-                ref.read(marksControllerProvider).setMarkForMovie(movie.id,
-                    int.parse(rankController.text)); // TODO add validation
-              },
+            const Divider(),
+            Text(movie.country.join(', ')),
+            Container(
+              padding: const EdgeInsets.all(20),
+              child: Column(
+                children: [
+                  Row(children: [
+                    Expanded(
+                        flex: 3,
+                        child: Text(
+                          "Genre: ",
+                          style: Theme.of(context).textTheme.headlineSmall,
+                        )),
+                    Expanded(
+                      flex: 7,
+                      child: Text(
+                        movie.genre.join(', '),
+                        style: Theme.of(context).textTheme.headlineSmall,
+                        textAlign: TextAlign.end,
+                      ),
+                    )
+                  ]),
+                  Row(children: [
+                    Expanded(
+                        flex: 3,
+                        child: Text(
+                          "Director: ",
+                          style: Theme.of(context).textTheme.headlineSmall,
+                        )),
+                    Expanded(
+                      flex: 7,
+                      child: Text(
+                        movie.director.join(', '),
+                        style: Theme.of(context).textTheme.headlineSmall,
+                        textAlign: TextAlign.end,
+                      ),
+                    )
+                  ]),
+                  Row(children: [
+                    Expanded(
+                        flex: 5,
+                        child: Text(
+                          "Release Date: ",
+                          style: Theme.of(context).textTheme.headlineSmall,
+                        )),
+                    Expanded(
+                      flex: 5,
+                      child: Text(
+                        "${movie.releaseDate.day}.${movie.releaseDate.month}.${movie.releaseDate.year}",
+                        style: Theme.of(context).textTheme.headlineSmall,
+                        textAlign: TextAlign.end,
+                      ),
+                    )
+                  ]),
+                  Row(
+                    children: [
+                      Column(
+                        children: [
+                          IconButton(
+                            icon: Icon(
+                                currentPurpose == FavouritesPurpose.favourite
+                                    ? Icons.star
+                                    : Icons.star_border,
+                                color: Colors.amber),
+                            onPressed: () {
+                              // TODO move to some controller / view model
+                              onFavouritesChange(movie.id, currentPurpose,
+                                      FavouritesPurpose.favourite)
+                                  .then((value) => setState(() {
+                                        currentPurpose = value;
+                                      }));
+                            },
+                          ),
+                          IconButton(
+                            icon: Icon(
+                                currentPurpose == FavouritesPurpose.watchLater
+                                    ? Icons.watch_later
+                                    : Icons.watch_later_outlined,
+                                color: Colors.cyan),
+                            onPressed: () {
+                              onFavouritesChange(movie.id, currentPurpose,
+                                      FavouritesPurpose.watchLater)
+                                  .then((value) => setState(() {
+                                        currentPurpose = value;
+                                      }));
+                            },
+                          ),
+                        ],
+                      ),
+                      Expanded(
+                        child: TextField(
+                          controller: rankController,
+                          decoration: const InputDecoration(labelText: "Rank"),
+                        ),
+                      ),
+                      TextButton(
+                        child: const Text("Rank"),
+                        onPressed: () {
+                          ref.read(marksControllerProvider).setMarkForMovie(
+                              movie.id,
+                              int.parse(
+                                  rankController.text)); // TODO add validation
+                        },
+                      ),
+                    ],
+                  ),
+                  Text(
+                    movie.description,
+                    style: Theme.of(context).textTheme.headlineSmall,
+                  ),
+                ],
+              ),
             ),
-            IconButton(
-              icon: Icon(currentPurpose == FavouritesPurpose.favourite
-                  ? Icons.star
-                  : Icons.star_border),
-              onPressed: () {
-                // TODO move to some controller / view model
-                onFavouritesChange(
-                        movie.id, currentPurpose, FavouritesPurpose.favourite)
-                    .then((value) => setState(() {
-                          currentPurpose = value;
-                        }));
-              },
-            ),
-            IconButton(
-              icon: Icon(currentPurpose == FavouritesPurpose.watchLater
-                  ? Icons.watch_later
-                  : Icons.watch_later_outlined),
-              onPressed: () {
-                onFavouritesChange(
-                        movie.id, currentPurpose, FavouritesPurpose.watchLater)
-                    .then((value) => setState(() {
-                          currentPurpose = value;
-                        }));
-              },
-            ),
-            Text(movie.favouritesProperties?.purpose.toViewableString() ??
-                "none")
           ],
-        ));
+        )));
   }
 
   Future<FavouritesPurpose> onFavouritesChange(String movieId,

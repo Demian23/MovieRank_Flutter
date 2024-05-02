@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
+import 'package:movie_rank/auth/auth_exception.dart';
 import 'package:movie_rank/auth/auth_repository.dart';
 import 'package:movie_rank/auth/registratin_creen.dart';
 
@@ -19,33 +20,44 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
         appBar: AppBar(
           title: const Text("Movie Rank"),
         ),
-        body: Center(
+        body: Container(
+            padding: const EdgeInsets.all(10),
             child: Column(
-          children: [
-            TextField(
-              controller: _emailController,
-              decoration: const InputDecoration(labelText: "Email"),
-            ),
-            TextField(
-              controller: _passwordController,
-              decoration: const InputDecoration(labelText: "Password"),
-            ),
-            TextButton(
-                onPressed: () {
-                  ref.read(authRepositoryProvider).signIn(
-                      email: _emailController.text,
-                      password: _passwordController.text);
-                },
-                child: const Text("Login")),
-            TextButton(
-                onPressed: () {
-                  Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                          builder: (context) => const RegistrationScreen()));
-                },
-                child: const Text("Need to Sign Up?"))
-          ],
-        )));
+              children: [
+                Image.asset("assets/images/MovieRankLogo.png"),
+                TextField(
+                  controller: _emailController,
+                  decoration: const InputDecoration(labelText: "Email"),
+                ),
+                TextField(
+                  controller: _passwordController,
+                  decoration: const InputDecoration(labelText: "Password"),
+                ),
+                TextButton(
+                    onPressed: () async {
+                      try {
+                        await ref.read(authRepositoryProvider).signIn(
+                            email: _emailController.text,
+                            password: _passwordController.text);
+                      } on AuthException catch (e) {
+                        if (context.mounted) {
+                          ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+                            content: Text(e.msg!), // TODO use colors from theme
+                          ));
+                        }
+                      }
+                    },
+                    child: const Text("Login")),
+                TextButton(
+                    onPressed: () {
+                      Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                              builder: (context) =>
+                                  const RegistrationScreen()));
+                    },
+                    child: const Text("Need to Sign Up?"))
+              ],
+            )));
   }
 }

@@ -40,6 +40,21 @@ class MoviesController extends StateNotifier<List<Movie>> {
       _ref.notifyListeners(); // TODO change to immutable entities?
     }
   }
+
+  Future<FavouritesPurpose> loadFavouritePurposeForMovie(String movieId) async {
+    final movieIndex = state.indexWhere((element) => element.id == movieId);
+    if (movieIndex != -1) {
+      final uid = _ref.read(authControllerProvider).firebaseUserSession!.uid;
+      final result = await _ref
+          .read(moviesRepositoryProvider)
+          .getFavouritesPropertiesOfMovieInUsersFavourites(
+              movieId: movieId, userId: uid);
+      state[movieIndex].favouritesProperties = result;
+      return result?.purpose ?? FavouritesPurpose.none;
+    } else {
+      return FavouritesPurpose.none;
+    }
+  }
 }
 
 class MarksController {

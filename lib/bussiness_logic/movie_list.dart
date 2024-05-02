@@ -48,7 +48,8 @@ class FavouritesListScreen extends ConsumerWidget {
         var movie = moviesToShow.elementAt(index);
         return Column(children: [
           FavouriteListRow(
-            index: index,
+            index: movies.indexWhere(
+                (element) => element.id == moviesToShow.elementAt(index).id),
             genre: movie.genre.first,
             name: movie.name,
             year: movie.releaseDate,
