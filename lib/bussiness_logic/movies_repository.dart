@@ -1,6 +1,8 @@
+import 'dart:typed_data';
+
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:movie_rank/dao/user_repository.dart';
+import 'package:movie_rank/bussiness_logic/user_repository.dart';
 import 'package:movie_rank/model/movie.dart';
 import 'package:movie_rank/providers.dart';
 
@@ -20,7 +22,6 @@ class MovieRepository {
   static const _movieScoresCount = "marksAmount";
   static const _favouritesCollection = "favourites";
   static const _favouritesForUserCollection = "userMovies";
-  static const _favouritesForUserMoviePurposeKey = "purpose";
 
   CollectionReference _movieCollectionRef() {
     return _ref
@@ -173,5 +174,21 @@ class MovieRepository {
       result.add(url);
     }
     return result;
+  }
+
+  Future<List<Uint8List>> fetchImagesForMovie(String movieId) async {
+    List<Uint8List> result = [];
+    final all =
+        await _ref.read(storageProvider).ref("movies/$movieId").listAll();
+    for (var item in all.items) {
+      final image = await item.getData();
+      if (image != null) result.add(image);
+    }
+    return result;
+  }
+
+  Future<Movie> getMovie(String movieId) async {
+    final snapshot = await _movieRef(movieId).get();
+    return snapshot.data() as Movie;
   }
 }

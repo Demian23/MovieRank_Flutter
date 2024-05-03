@@ -1,4 +1,5 @@
-import 'package:cached_network_image/cached_network_image.dart';
+import 'dart:typed_data';
+
 import 'package:carousel_slider/carousel_slider.dart';
 import 'package:flutter/material.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
@@ -21,7 +22,7 @@ class MovieDetailScreen extends StatefulHookConsumerWidget {
 class _DetaileState extends ConsumerState<MovieDetailScreen> {
   final int movieIndex;
   final rankController = TextEditingController();
-  List<String> images = [];
+  List<Uint8List> images = [];
   FavouritesPurpose currentPurpose = FavouritesPurpose.none;
   _DetaileState(this.movieIndex);
 
@@ -39,7 +40,10 @@ class _DetaileState extends ConsumerState<MovieDetailScreen> {
           (value) => rankController.text = value,
         );
     if (images.isEmpty) {
-      ref.read(imgsControllerProvider).getImgsUrls(movie.id).then((value) {
+      ref
+          .read(imgsControllerProvider)
+          .getImagesForMoive(movie.id)
+          .then((value) {
         setState(
           () {
             images = value;
@@ -62,13 +66,7 @@ class _DetaileState extends ConsumerState<MovieDetailScreen> {
               } else {
                 return CarouselSlider(
                     items: images
-                        .map((item) => Center(
-                                child: CachedNetworkImage(
-                              imageUrl: item,
-                              fit: BoxFit.cover,
-                              placeholder: (context, url) =>
-                                  const CircularProgressIndicator(),
-                            )))
+                        .map((item) => Center(child: Image.memory(item)))
                         .toList(),
                     options: CarouselOptions());
               }
@@ -188,10 +186,24 @@ class _DetaileState extends ConsumerState<MovieDetailScreen> {
                       TextButton(
                         child: const Text("Rank"),
                         onPressed: () {
-                          ref.read(marksControllerProvider).setMarkForMovie(
-                              movie.id,
-                              int.parse(
-                                  rankController.text)); // TODO add validation
+                          final newRank = int.tryParse(rankController.text);
+                          bool showError = (newRank == null) ||
+                              (newRank > 100) ||
+                              (newRank < 0);
+                          if (!showError) {
+                            ref
+                                .read(marksControllerProvider)
+                                .setMarkForMovie(movie.id, newRank);
+                            ref
+                                .read(moviesControllerProvider.notifier)
+                                .updateMovie(movie.id);
+                          } else {
+                            ScaffoldMessenger.of(context)
+                                .showSnackBar(const SnackBar(
+                              content: Text(
+                                  "Rank should be number between 0 and 100"),
+                            )); // TODO use colors from theme
+                          }
                         },
                       ),
                     ],

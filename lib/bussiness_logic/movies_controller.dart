@@ -1,7 +1,11 @@
+import 'dart:typed_data';
+
+import 'package:connectivity_plus/connectivity_plus.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:movie_rank/auth/auth_controller.dart';
+import 'package:movie_rank/bussiness_logic/images_cache.dart';
+import 'package:movie_rank/bussiness_logic/movies_cache.dart';
 import 'package:movie_rank/bussiness_logic/movies_repository.dart';
-import 'package:movie_rank/dao/user_repository.dart';
 import 'package:movie_rank/model/movie.dart';
 
 final moviesControllerProvider =
@@ -22,7 +26,15 @@ class MoviesController extends StateNotifier<List<Movie>> {
     authState.when(
       data: (user) async {
         if (user != null) {
-          state = await _ref.read(moviesRepositoryProvider).getAllMovies();
+          await _openCaches();
+          final connectivityResult = await Connectivity().checkConnectivity();
+          if (connectivityResult.contains(ConnectivityResult.wifi) ||
+              connectivityResult.contains(ConnectivityResult.mobile) ||
+              connectivityResult.contains(ConnectivityResult.ethernet)) {
+            state = await _ref.read(moviesRepositoryProvider).getAllMovies();
+          } else {
+            state = _ref.read(moviesCacheProvider).getAll();
+          }
         }
       },
       loading: () {},
@@ -30,14 +42,24 @@ class MoviesController extends StateNotifier<List<Movie>> {
     );
   }
 
+  Future<void> _openCaches() async {
+    await _ref.read(moviesCacheProvider).openCache();
+    await _ref.read(imagesCacheProvider).openCache();
+  }
+
   void loadFavouritesForCurrentUserOnce() async {
     if (!_favouritesLoaded) {
-      final uid = _ref.read(authControllerProvider).firebaseUserSession!.uid;
-      await _ref
-          .read(moviesRepositoryProvider)
-          .addFavouriteMoviesInMovieListForUser(uid: uid, movies: state);
-      _favouritesLoaded = true;
-      _ref.notifyListeners(); // TODO change to immutable entities?
+      final connectivityResult = await Connectivity().checkConnectivity();
+      if (connectivityResult.contains(ConnectivityResult.wifi) ||
+          connectivityResult.contains(ConnectivityResult.mobile) ||
+          connectivityResult.contains(ConnectivityResult.ethernet)) {
+        final uid = _ref.read(authControllerProvider).firebaseUserSession!.uid;
+        await _ref
+            .read(moviesRepositoryProvider)
+            .addFavouriteMoviesInMovieListForUser(uid: uid, movies: state);
+        _favouritesLoaded = true;
+        _ref.notifyListeners(); // TODO change to immutable entities?
+      }
     }
   }
 
@@ -55,6 +77,19 @@ class MoviesController extends StateNotifier<List<Movie>> {
       return FavouritesPurpose.none;
     }
   }
+
+  void updateMovie(String movieId) async {
+    final newMovie =
+        await _ref.read(moviesRepositoryProvider).getMovie(movieId);
+    final index = state.indexWhere((element) => element.id == movieId);
+    if (index == -1) {
+      state.add(newMovie);
+    } else {
+      final favourites = state[index].favouritesProperties;
+      newMovie.favouritesProperties = favourites;
+      state[index] = newMovie;
+    }
+  }
 }
 
 class MarksController {
@@ -66,14 +101,21 @@ class MarksController {
     if (marks.containsKey(movieId)) {
       return marks[movieId]!.toString();
     } else {
-      final uid = _ref.read(authControllerProvider).firebaseUserSession!.uid;
-      final mark = await _ref
-          .read(moviesRepositoryProvider)
-          .fetchMarkForMovieByUser(movieId: movieId, userId: uid);
-      if (mark.isNotEmpty) {
-        marks[movieId] = int.parse(mark);
+      final connectivityResult = await Connectivity().checkConnectivity();
+      if (connectivityResult.contains(ConnectivityResult.wifi) ||
+          connectivityResult.contains(ConnectivityResult.mobile) ||
+          connectivityResult.contains(ConnectivityResult.ethernet)) {
+        final uid = _ref.read(authControllerProvider).firebaseUserSession!.uid;
+        final mark = await _ref
+            .read(moviesRepositoryProvider)
+            .fetchMarkForMovieByUser(movieId: movieId, userId: uid);
+        if (mark.isNotEmpty) {
+          marks[movieId] = int.parse(mark);
+        }
+        return mark;
+      } else {
+        return '';
       }
-      return mark;
     }
   }
 
@@ -91,6 +133,7 @@ class ImagesUrlsController {
   final Ref _ref;
   final Map<String, List<String>> urls = {};
   ImagesUrlsController(this._ref);
+
   Future<List<String>> getImgsUrls(String movieId) async {
     if (!urls.containsKey(movieId)) {
       final urlsForMovie = await _ref
@@ -99,5 +142,20 @@ class ImagesUrlsController {
       urls[movieId] = urlsForMovie;
     }
     return urls[movieId]!;
+  }
+
+  Future<List<Uint8List>> getImagesForMoive(String movieId) async {
+    final imageCache = _ref.read(imagesCacheProvider);
+    if (imageCache.hasKey(movieId)) {
+      return imageCache.get(movieId);
+    } else {
+      final images = await _ref
+          .read(moviesRepositoryProvider)
+          .fetchImagesForMovie(movieId);
+      if (images.isNotEmpty) {
+        imageCache.put(movieId, images);
+      }
+      return images;
+    }
   }
 }

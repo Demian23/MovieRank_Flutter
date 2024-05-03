@@ -12,8 +12,6 @@ class UserRepository {
   static const _userCollection = "users";
   static const _userScoreKey = "userScore";
   static const _favouritesCollection = "favourites";
-  static const _favouritesForUserCollection = "userMovies";
-  static const _favouritesPurposeKey = "purpose";
 
   UserRepository(this._ref);
 
@@ -29,14 +27,6 @@ class UserRepository {
 
   DocumentReference _userRef(String uid) {
     return _userCollectionRef().doc(uid);
-  }
-
-  CollectionReference _favouriteMoviesForUser(String uid) {
-    return _ref
-        .read(firestoreProvider)
-        .collection(_favouritesCollection)
-        .doc(uid)
-        .collection(_favouritesForUserCollection);
   }
 
   DocumentReference _favouritesForUser(String uid) {

@@ -1,6 +1,6 @@
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:movie_rank/auth/auth_repository.dart';
-import 'package:movie_rank/dao/user_repository.dart';
+import 'package:movie_rank/bussiness_logic/user_repository.dart';
 import 'package:movie_rank/model/user.dart' as mr;
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
@@ -37,7 +37,6 @@ class AuthController extends StateNotifier<UserSession> {
     );
   }
 
-  void deleteAccount() {}
   void resetPassword() {}
 
   void signOut() {

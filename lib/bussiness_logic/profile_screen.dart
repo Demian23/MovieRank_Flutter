@@ -1,7 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:movie_rank/auth/auth_controller.dart';
+import 'package:movie_rank/auth/auth_exception.dart';
+import 'package:movie_rank/auth/auth_repository.dart';
 import 'package:movie_rank/aux/text_with_icon_and_label.dart';
+import 'package:movie_rank/bussiness_logic/movies_cache.dart';
+import 'package:movie_rank/bussiness_logic/movies_controller.dart';
 import 'package:movie_rank/model/user.dart';
 
 class ProfileScreen extends ConsumerWidget {
@@ -67,9 +71,21 @@ class ProfileScreen extends ConsumerWidget {
                           label: "Delete Account",
                           icon: Icons.delete_forever,
                           text: ''),
-                      onPressed: () => ref
-                          .read(authControllerProvider.notifier)
-                          .deleteAccount(),
+                      onPressed: () async {
+                        try {
+                          await ref
+                              .read(authRepositoryProvider)
+                              .deleteAccount();
+                          ref.read(authControllerProvider.notifier).signOut();
+                        } on AuthException catch (e) {
+                          if (context.mounted) {
+                            ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+                              content:
+                                  Text(e.msg!), // TODO use colors from theme
+                            ));
+                          }
+                        }
+                      },
                     ),
                     TextButton(
                       child: const TextWithIconLabel(
@@ -77,6 +93,23 @@ class ProfileScreen extends ConsumerWidget {
                       onPressed: () => ref
                           .read(authControllerProvider.notifier)
                           .resetPassword(),
+                    ),
+                    TextButton(
+                      child: const TextWithIconLabel(
+                          label: "cache favourites",
+                          icon: Icons.storage,
+                          text: ''),
+                      onPressed: () {
+                        ref.read(moviesCacheProvider).clear();
+                        final favourites = ref
+                            .read(moviesControllerProvider)
+                            .where((element) =>
+                                element.favouritesProperties != null);
+                        final cache = ref.read(moviesCacheProvider);
+                        for (var movie in favourites) {
+                          cache.put(movie.id, movie);
+                        }
+                      },
                     ),
                   ],
                 ),

@@ -1,16 +1,31 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:hive/hive.dart';
 
+part 'movie.g.dart';
+
+@HiveType(typeId: 0)
 class Movie {
+  @HiveField(0)
   final String id;
+  @HiveField(1)
   final String name;
+  @HiveField(2)
   final DateTime releaseDate;
+  @HiveField(3)
   final int marksAmount;
+  @HiveField(4)
   final int marksWholeScore;
+  @HiveField(5)
   final List<String> country;
+  @HiveField(6)
   final List<String> genre;
+  @HiveField(7)
   final List<String> director;
+  @HiveField(8)
   final String description;
+  @HiveField(9)
   final Duration duration;
+  @HiveField(10)
   FavouritesProperties? favouritesProperties;
 
   Movie(
@@ -50,6 +65,20 @@ class Movie {
       'description': description,
       'duration': duration.inSeconds
     };
+  }
+}
+
+class DurationAdapter extends TypeAdapter<Duration> {
+  @override
+  final int typeId = 3;
+  @override
+  Duration read(BinaryReader reader) {
+    return Duration(seconds: reader.read());
+  }
+
+  @override
+  void write(BinaryWriter writer, Duration obj) {
+    writer.write(obj.inSeconds);
   }
 }
 
@@ -133,7 +162,9 @@ extension GenreAsString on Genres {
   }
 }
 
+@HiveType(typeId: 2)
 class FavouritesProperties {
+  @HiveField(0)
   final FavouritesPurpose purpose;
   FavouritesProperties.fromMap({required Map<String, dynamic> fields})
       : this(
@@ -146,9 +177,13 @@ class FavouritesProperties {
   }
 }
 
+@HiveType(typeId: 1)
 enum FavouritesPurpose {
+  @HiveField(0)
   watchLater,
+  @HiveField(1)
   favourite,
+  @HiveField(2)
   none,
 }
 
