@@ -7,7 +7,7 @@ final imagesCacheProvider = Provider<ImagesCache>((ref) => ImagesCache());
 
 class ImagesCache {
   static const _boxName = "images";
-  late final Box _imagesBox;
+  late Box _imagesBox;
 
   Future<void> openCache() async {
     _imagesBox = await Hive.openBox<List>(_boxName);

@@ -2,9 +2,9 @@ import 'dart:typed_data';
 
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:movie_rank/bussiness_logic/user_repository.dart';
+import 'package:movie_rank/user/user_repository.dart';
 import 'package:movie_rank/model/movie.dart';
-import 'package:movie_rank/providers.dart';
+import 'package:movie_rank/global_providers.dart';
 
 final moviesRepositoryProvider =
     Provider<MovieRepository>((ref) => MovieRepository(ref));

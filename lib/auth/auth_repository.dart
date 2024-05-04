@@ -1,9 +1,9 @@
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:movie_rank/auth/auth_exception.dart';
-import 'package:movie_rank/bussiness_logic/user_repository.dart';
+import 'package:movie_rank/user/user_repository.dart';
 import 'package:movie_rank/model/user.dart' as mr;
-import 'package:movie_rank/providers.dart';
+import 'package:movie_rank/global_providers.dart';
 
 final authRepositoryProvider =
     Provider<AuthRepository>((ref) => AuthRepository(ref));

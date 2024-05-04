@@ -3,9 +3,9 @@ import 'dart:typed_data';
 import 'package:connectivity_plus/connectivity_plus.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:movie_rank/auth/auth_controller.dart';
-import 'package:movie_rank/bussiness_logic/images_cache.dart';
-import 'package:movie_rank/bussiness_logic/movies_cache.dart';
-import 'package:movie_rank/bussiness_logic/movies_repository.dart';
+import 'package:movie_rank/movies/cache/images_cache.dart';
+import 'package:movie_rank/movies/cache/movies_cache.dart';
+import 'package:movie_rank/movies/movies_repository.dart';
 import 'package:movie_rank/model/movie.dart';
 
 final moviesControllerProvider =
@@ -47,6 +47,13 @@ class MoviesController extends StateNotifier<List<Movie>> {
     await _ref.read(imagesCacheProvider).openCache();
   }
 
+  void clearCaches() async {
+    _ref.read(moviesCacheProvider).clear();
+    _ref.read(moviesCacheProvider).closeCache();
+    _ref.read(imagesCacheProvider).clear();
+    _ref.read(imagesCacheProvider).closeCache();
+  }
+
   void loadFavouritesForCurrentUserOnce() async {
     if (!_favouritesLoaded) {
       final connectivityResult = await Connectivity().checkConnectivity();
@@ -57,6 +64,13 @@ class MoviesController extends StateNotifier<List<Movie>> {
         await _ref
             .read(moviesRepositoryProvider)
             .addFavouriteMoviesInMovieListForUser(uid: uid, movies: state);
+        final cache = _ref.read(moviesCacheProvider);
+        final favourites =
+            state.where((element) => element.favouritesProperties != null);
+        cache.clear();
+        for (var movie in favourites) {
+          cache.put(movie.id, movie);
+        }
         _favouritesLoaded = true;
         _ref.notifyListeners(); // TODO change to immutable entities?
       }

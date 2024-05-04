@@ -6,7 +6,7 @@ final moviesCacheProvider = Provider<MoviesCache>((ref) => MoviesCache());
 
 class MoviesCache {
   static const String _boxName = "movies";
-  late final Box _moviesBox;
+  late Box _moviesBox;
 
   Future<void> openCache() async {
     _moviesBox = await Hive.openBox<Movie>(_boxName);

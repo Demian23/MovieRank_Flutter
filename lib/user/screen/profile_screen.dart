@@ -4,8 +4,7 @@ import 'package:movie_rank/auth/auth_controller.dart';
 import 'package:movie_rank/auth/auth_exception.dart';
 import 'package:movie_rank/auth/auth_repository.dart';
 import 'package:movie_rank/aux/text_with_icon_and_label.dart';
-import 'package:movie_rank/bussiness_logic/movies_cache.dart';
-import 'package:movie_rank/bussiness_logic/movies_controller.dart';
+import 'package:movie_rank/movies/movies_controller.dart';
 import 'package:movie_rank/model/user.dart';
 
 class ProfileScreen extends ConsumerWidget {
@@ -61,11 +60,16 @@ class ProfileScreen extends ConsumerWidget {
                         icon: Icons.score,
                         text: user.userScore.toString()),
                     TextButton(
-                      child: const TextWithIconLabel(
-                          label: "Sign Out", icon: Icons.exit_to_app, text: ''),
-                      onPressed: () =>
-                          ref.read(authControllerProvider.notifier).signOut(),
-                    ),
+                        child: const TextWithIconLabel(
+                            label: "Sign Out",
+                            icon: Icons.exit_to_app,
+                            text: ''),
+                        onPressed: () {
+                          ref.read(authControllerProvider.notifier).signOut();
+                          ref
+                              .read(moviesControllerProvider.notifier)
+                              .clearCaches();
+                        }),
                     TextButton(
                       child: const TextWithIconLabel(
                           label: "Delete Account",
@@ -93,23 +97,6 @@ class ProfileScreen extends ConsumerWidget {
                       onPressed: () => ref
                           .read(authControllerProvider.notifier)
                           .resetPassword(),
-                    ),
-                    TextButton(
-                      child: const TextWithIconLabel(
-                          label: "cache favourites",
-                          icon: Icons.storage,
-                          text: ''),
-                      onPressed: () {
-                        ref.read(moviesCacheProvider).clear();
-                        final favourites = ref
-                            .read(moviesControllerProvider)
-                            .where((element) =>
-                                element.favouritesProperties != null);
-                        final cache = ref.read(moviesCacheProvider);
-                        for (var movie in favourites) {
-                          cache.put(movie.id, movie);
-                        }
-                      },
                     ),
                   ],
                 ),

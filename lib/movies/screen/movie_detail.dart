@@ -4,8 +4,9 @@ import 'package:carousel_slider/carousel_slider.dart';
 import 'package:flutter/material.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
 import 'package:movie_rank/auth/auth_controller.dart';
-import 'package:movie_rank/bussiness_logic/movies_controller.dart';
-import 'package:movie_rank/bussiness_logic/movies_repository.dart';
+import 'package:movie_rank/movies/cache/movies_cache.dart';
+import 'package:movie_rank/movies/movies_controller.dart';
+import 'package:movie_rank/movies/movies_repository.dart';
 import 'package:movie_rank/model/movie.dart';
 
 class MovieDetailScreen extends StatefulHookConsumerWidget {
@@ -223,6 +224,7 @@ class _DetaileState extends ConsumerState<MovieDetailScreen> {
       FavouritesPurpose prevState, FavouritesPurpose currentPress) async {
     final movieRepository = ref.read(moviesRepositoryProvider);
     final uid = ref.read(authControllerProvider).firebaseUserSession!.uid;
+    final cache = ref.read(moviesCacheProvider);
     if (prevState == currentPress) {
       await movieRepository.deleteMovieFromUserFavourites(
           movieId: movieId, userId: uid);
@@ -231,6 +233,7 @@ class _DetaileState extends ConsumerState<MovieDetailScreen> {
           .read(moviesControllerProvider)
           .firstWhere((element) => element.id == movieId)
           .favouritesProperties = null;
+      cache.delete(movieId);
       return FavouritesPurpose.none;
     } else {
       switch (prevState) {
@@ -249,10 +252,11 @@ class _DetaileState extends ConsumerState<MovieDetailScreen> {
               properties: FavouritesProperties(purpose: currentPress));
           break;
       }
-      ref
+      final movie = ref
           .read(moviesControllerProvider)
           .firstWhere((element) => element.id == movieId)
-          .favouritesProperties = FavouritesProperties(purpose: currentPress);
+        ..favouritesProperties = FavouritesProperties(purpose: currentPress);
+      cache.put(movieId, movie);
       return currentPress;
     }
   }

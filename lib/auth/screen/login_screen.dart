@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
 import 'package:movie_rank/auth/auth_exception.dart';
 import 'package:movie_rank/auth/auth_repository.dart';
-import 'package:movie_rank/auth/registratin_creen.dart';
+import 'package:movie_rank/auth/screen/registratin_creen.dart';
 
 class LoginScreen extends StatefulHookConsumerWidget {
   const LoginScreen({super.key});

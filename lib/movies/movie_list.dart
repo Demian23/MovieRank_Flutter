@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:movie_rank/bussiness_logic/movie_detail.dart';
-import 'package:movie_rank/bussiness_logic/movies_controller.dart';
+import 'package:movie_rank/movies/screen/movie_detail.dart';
+import 'package:movie_rank/movies/movies_controller.dart';
 import 'package:movie_rank/model/movie.dart';
 
 class MovieListScreen extends ConsumerWidget {

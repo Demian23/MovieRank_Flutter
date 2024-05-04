@@ -1,7 +1,7 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:movie_rank/model/user.dart';
-import 'package:movie_rank/providers.dart';
+import 'package:movie_rank/global_providers.dart';
 
 final userRepositoryProvider =
     Provider<UserRepository>((ref) => UserRepository(ref));
