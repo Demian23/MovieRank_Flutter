@@ -2,7 +2,7 @@ import 'dart:typed_data';
 
 import 'package:connectivity_plus/connectivity_plus.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:movie_rank/auth/auth_controller.dart';
+import 'package:movie_rank/user/user_controller.dart';
 import 'package:movie_rank/movies/cache/images_cache.dart';
 import 'package:movie_rank/movies/cache/movies_cache.dart';
 import 'package:movie_rank/movies/movies_repository.dart';
@@ -33,7 +33,7 @@ class MoviesController extends StateNotifier<List<Movie>> {
               connectivityResult.contains(ConnectivityResult.ethernet)) {
             state = await _ref.read(moviesRepositoryProvider).getAllMovies();
           } else {
-            state = _ref.read(moviesCacheProvider).getAll();
+            state = _ref.read(moviesCacheProvider).getAll().values.toList();
           }
         }
       },

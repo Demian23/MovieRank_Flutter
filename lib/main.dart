@@ -3,7 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:hive_flutter/hive_flutter.dart';
 import 'package:movie_rank/model/movie.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
-import 'package:movie_rank/auth/auth_controller.dart';
+import 'package:movie_rank/user/user_controller.dart';
 import 'package:movie_rank/auth/screen/login_screen.dart';
 import 'package:movie_rank/movies/screen/movie_list.dart';
 import 'package:movie_rank/user/screen/profile_screen.dart';

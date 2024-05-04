@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:movie_rank/auth/auth_controller.dart';
+import 'package:movie_rank/user/user_controller.dart';
 import 'package:movie_rank/auth/auth_exception.dart';
 import 'package:movie_rank/auth/auth_repository.dart';
 import 'package:movie_rank/aux/text_with_icon_and_label.dart';
