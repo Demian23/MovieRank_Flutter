@@ -53,7 +53,7 @@ class _RootState extends ConsumerState<Root> {
 
   @override
   Widget build(BuildContext context) {
-    final authController = ref.watch(authControllerProvider);
+    final authController = ref.watch(userControllerProvider);
     if (authController.firebaseUserSession != null) {
       return Scaffold(
         body: Center(

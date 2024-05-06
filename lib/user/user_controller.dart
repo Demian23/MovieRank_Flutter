@@ -4,9 +4,9 @@ import 'package:movie_rank/user/user_repository.dart';
 import 'package:movie_rank/model/user.dart' as mr;
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-final authControllerProvider =
-    StateNotifierProvider<AuthController, UserSession>(
-  (ref) => AuthController(ref),
+final userControllerProvider =
+    StateNotifierProvider<UserController, UserSession>(
+  (ref) => UserController(ref),
 );
 
 final authStateChangesProvider = StreamProvider<User?>(
@@ -19,10 +19,10 @@ class UserSession {
   UserSession(this.firebaseUserSession, this.userData);
 }
 
-class AuthController extends StateNotifier<UserSession> {
+class UserController extends StateNotifier<UserSession> {
   final Ref _ref;
 
-  AuthController(this._ref) : super(UserSession(null, null)) {
+  UserController(this._ref) : super(UserSession(null, null)) {
     final authState = _ref.watch(authStateChangesProvider);
     authState.when(
       data: (user) async {

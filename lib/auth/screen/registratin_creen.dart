@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
+import 'package:movie_rank/auth/auth_controller.dart';
 import 'package:movie_rank/auth/auth_exception.dart';
-import 'package:movie_rank/auth/auth_repository.dart';
 import 'package:movie_rank/model/user.dart';
 
 class RegistrationScreen extends StatefulHookConsumerWidget {
@@ -18,8 +18,10 @@ class _RegistrationScreenState extends ConsumerState<RegistrationScreen> {
   final _firstName = TextEditingController();
   final _lastName = TextEditingController();
   final _country = TextEditingController();
+
   @override
   Widget build(BuildContext context) {
+    final authController = ref.read(authControllerProvider);
     return Scaffold(
         appBar: AppBar(
           title: const Text("Movie Rank"),
@@ -55,11 +57,11 @@ class _RegistrationScreenState extends ConsumerState<RegistrationScreen> {
                       const InputDecoration(labelText: "Password Confirmation"),
                 ),
                 TextButton(
-                    onPressed: isInputValid()
+                    onPressed: isFieldsCorrect()
                         ? null
                         : () {
                             try {
-                              ref.read(authRepositoryProvider).signUp(
+                              authController.signUp(
                                   email: _email.text,
                                   password: _password.text,
                                   firstName: _firstName.text,
@@ -81,7 +83,7 @@ class _RegistrationScreenState extends ConsumerState<RegistrationScreen> {
             )));
   }
 
-  bool isInputValid() {
+  bool isFieldsCorrect() {
     return _email.text.isNotEmpty &&
         _firstName.text.isNotEmpty &&
         _lastName.text.isNotEmpty &&

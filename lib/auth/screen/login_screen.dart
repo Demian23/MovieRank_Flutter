@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
+import 'package:movie_rank/auth/auth_controller.dart';
 import 'package:movie_rank/auth/auth_exception.dart';
-import 'package:movie_rank/auth/auth_repository.dart';
 import 'package:movie_rank/auth/screen/registratin_creen.dart';
 
 class LoginScreen extends StatefulHookConsumerWidget {
@@ -16,6 +16,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
   final _passwordController = TextEditingController();
   @override
   Widget build(BuildContext context) {
+    final authController = ref.read(authControllerProvider);
     return Scaffold(
         appBar: AppBar(
           title: const Text("Movie Rank"),
@@ -36,7 +37,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                 TextButton(
                     onPressed: () async {
                       try {
-                        await ref.read(authRepositoryProvider).signIn(
+                        await authController.signIn(
                             email: _emailController.text,
                             password: _passwordController.text);
                       } on AuthException catch (e) {

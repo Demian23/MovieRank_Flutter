@@ -12,7 +12,7 @@ class ProfileScreen extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final controller = ref.watch(authControllerProvider);
+    final controller = ref.watch(userControllerProvider);
     if (controller.userData != null) {
       final user = controller.userData!;
       return Scaffold(
@@ -65,7 +65,7 @@ class ProfileScreen extends ConsumerWidget {
                             icon: Icons.exit_to_app,
                             text: ''),
                         onPressed: () {
-                          ref.read(authControllerProvider.notifier).signOut();
+                          ref.read(userControllerProvider.notifier).signOut();
                           ref
                               .read(moviesControllerProvider.notifier)
                               .clearCaches();
@@ -80,7 +80,7 @@ class ProfileScreen extends ConsumerWidget {
                           await ref
                               .read(authRepositoryProvider)
                               .deleteAccount();
-                          ref.read(authControllerProvider.notifier).signOut();
+                          ref.read(userControllerProvider.notifier).signOut();
                         } on AuthException catch (e) {
                           if (context.mounted) {
                             ScaffoldMessenger.of(context).showSnackBar(SnackBar(
@@ -95,7 +95,7 @@ class ProfileScreen extends ConsumerWidget {
                       child: const TextWithIconLabel(
                           label: "Reset password", icon: Icons.loop, text: ''),
                       onPressed: () => ref
-                          .read(authControllerProvider.notifier)
+                          .read(userControllerProvider.notifier)
                           .resetPassword(),
                     ),
                   ],

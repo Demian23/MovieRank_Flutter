@@ -1,7 +1,5 @@
-import 'dart:typed_data';
-
-import 'package:connectivity_plus/connectivity_plus.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:movie_rank/aux/data_source_decision_maker.dart';
 import 'package:movie_rank/user/user_controller.dart';
 import 'package:movie_rank/movies/cache/images_cache.dart';
 import 'package:movie_rank/movies/cache/movies_cache.dart';
@@ -13,11 +11,6 @@ final moviesControllerProvider =
   (ref) => MoviesController(ref),
 );
 
-final marksControllerProvider =
-    Provider<MarksController>((ref) => MarksController(ref));
-final imgsControllerProvider =
-    Provider<ImagesUrlsController>((ref) => ImagesUrlsController(ref));
-
 class MoviesController extends StateNotifier<List<Movie>> {
   final Ref _ref;
   bool _favouritesLoaded = false;
@@ -27,10 +20,10 @@ class MoviesController extends StateNotifier<List<Movie>> {
       data: (user) async {
         if (user != null) {
           await _openCaches();
-          final connectivityResult = await Connectivity().checkConnectivity();
-          if (connectivityResult.contains(ConnectivityResult.wifi) ||
-              connectivityResult.contains(ConnectivityResult.mobile) ||
-              connectivityResult.contains(ConnectivityResult.ethernet)) {
+          final networkDataSourceSuitable = await _ref
+              .read(dataSourceDecisionMakerProvider)
+              .isNetworkSuitableDataSource();
+          if (networkDataSourceSuitable) {
             state = await _ref.read(moviesRepositoryProvider).getAllMovies();
           } else {
             state = _ref.read(moviesCacheProvider).getAll().values.toList();
@@ -56,11 +49,11 @@ class MoviesController extends StateNotifier<List<Movie>> {
 
   void loadFavouritesForCurrentUserOnce() async {
     if (!_favouritesLoaded) {
-      final connectivityResult = await Connectivity().checkConnectivity();
-      if (connectivityResult.contains(ConnectivityResult.wifi) ||
-          connectivityResult.contains(ConnectivityResult.mobile) ||
-          connectivityResult.contains(ConnectivityResult.ethernet)) {
-        final uid = _ref.read(authControllerProvider).firebaseUserSession!.uid;
+      final networkDataSourceSuitable = await _ref
+          .read(dataSourceDecisionMakerProvider)
+          .isNetworkSuitableDataSource();
+      if (networkDataSourceSuitable) {
+        final uid = _ref.read(userControllerProvider).firebaseUserSession!.uid;
         await _ref
             .read(moviesRepositoryProvider)
             .addFavouriteMoviesInMovieListForUser(uid: uid, movies: state);
@@ -80,7 +73,7 @@ class MoviesController extends StateNotifier<List<Movie>> {
   Future<FavouritesPurpose> loadFavouritePurposeForMovie(String movieId) async {
     final movieIndex = state.indexWhere((element) => element.id == movieId);
     if (movieIndex != -1) {
-      final uid = _ref.read(authControllerProvider).firebaseUserSession!.uid;
+      final uid = _ref.read(userControllerProvider).firebaseUserSession!.uid;
       final result = await _ref
           .read(moviesRepositoryProvider)
           .getFavouritesPropertiesOfMovieInUsersFavourites(
@@ -104,72 +97,41 @@ class MoviesController extends StateNotifier<List<Movie>> {
       state[index] = newMovie;
     }
   }
-}
 
-class MarksController {
-  final Map<String, int> marks = {};
-  final Ref _ref;
-  MarksController(this._ref);
-
-  Future<String> getMarkForMovie(String movieId) async {
-    if (marks.containsKey(movieId)) {
-      return marks[movieId]!.toString();
+  Future<FavouritesPurpose> onFavouritesChange(String movieId,
+      FavouritesPurpose prevState, FavouritesPurpose currentPress) async {
+    final movieRepository = _ref.read(moviesRepositoryProvider);
+    final uid = _ref.read(userControllerProvider).firebaseUserSession!.uid;
+    final cache = _ref.read(moviesCacheProvider);
+    if (prevState == currentPress) {
+      await movieRepository.deleteMovieFromUserFavourites(
+          movieId: movieId, userId: uid);
+      state
+          .firstWhere((element) => element.id == movieId)
+          .favouritesProperties = null;
+      cache.delete(movieId);
+      return FavouritesPurpose.none;
     } else {
-      final connectivityResult = await Connectivity().checkConnectivity();
-      if (connectivityResult.contains(ConnectivityResult.wifi) ||
-          connectivityResult.contains(ConnectivityResult.mobile) ||
-          connectivityResult.contains(ConnectivityResult.ethernet)) {
-        final uid = _ref.read(authControllerProvider).firebaseUserSession!.uid;
-        final mark = await _ref
-            .read(moviesRepositoryProvider)
-            .fetchMarkForMovieByUser(movieId: movieId, userId: uid);
-        if (mark.isNotEmpty) {
-          marks[movieId] = int.parse(mark);
-        }
-        return mark;
-      } else {
-        return '';
+      switch (prevState) {
+        case FavouritesPurpose.none:
+          await movieRepository.addMovieToUserFavourites(
+              movieId: movieId,
+              userId: uid,
+              prop: FavouritesProperties(purpose: currentPress));
+          break;
+        case FavouritesPurpose.watchLater:
+        case FavouritesPurpose.favourite:
+          // TODO change update and maybe add interface from properties to purpose only
+          await movieRepository.updateMovieInUserFavourites(
+              movieId: movieId,
+              userId: uid,
+              properties: FavouritesProperties(purpose: currentPress));
+          break;
       }
-    }
-  }
-
-  void setMarkForMovie(String movieId, int mark) async {
-    final uid = _ref.read(authControllerProvider).firebaseUserSession!.uid;
-    await _ref
-        .read(moviesRepositoryProvider)
-        .updateOrCreateNewMarkForMovieByUser(
-            movieId: movieId, userId: uid, newMarkValue: mark);
-    marks[movieId] = mark;
-  }
-}
-
-class ImagesUrlsController {
-  final Ref _ref;
-  final Map<String, List<String>> urls = {};
-  ImagesUrlsController(this._ref);
-
-  Future<List<String>> getImgsUrls(String movieId) async {
-    if (!urls.containsKey(movieId)) {
-      final urlsForMovie = await _ref
-          .read(moviesRepositoryProvider)
-          .fetchImgUrlsForMovie(movieId);
-      urls[movieId] = urlsForMovie;
-    }
-    return urls[movieId]!;
-  }
-
-  Future<List<Uint8List>> getImagesForMoive(String movieId) async {
-    final imageCache = _ref.read(imagesCacheProvider);
-    if (imageCache.hasKey(movieId)) {
-      return imageCache.get(movieId);
-    } else {
-      final images = await _ref
-          .read(moviesRepositoryProvider)
-          .fetchImagesForMovie(movieId);
-      if (images.isNotEmpty) {
-        imageCache.put(movieId, images);
-      }
-      return images;
+      final movie = state.firstWhere((element) => element.id == movieId)
+        ..favouritesProperties = FavouritesProperties(purpose: currentPress);
+      cache.put(movieId, movie);
+      return currentPress;
     }
   }
 }
